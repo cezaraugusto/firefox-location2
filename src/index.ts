@@ -12,7 +12,30 @@ export default function locateFirefox(): string | null {
     try {
       return which.sync('firefox');
     } catch (_) {
-      return null;
+      // Try alternative names on Linux
+      try {
+        return which.sync('firefox-esr');
+      } catch (_) {
+        try {
+          return which.sync('firefox-nightly');
+        } catch (_) {
+          // Check common Linux installation paths
+          const linuxPaths = [
+            '/usr/bin/firefox',
+            '/usr/local/bin/firefox',
+            '/snap/bin/firefox',
+            '/opt/firefox/firefox',
+          ];
+
+          for (const linuxPath of linuxPaths) {
+            if (fs.existsSync(linuxPath)) {
+              return linuxPath;
+            }
+          }
+
+          return null;
+        }
+      }
     }
   } else if (osx) {
     const regPath = '/Applications/Firefox.app/Contents/MacOS/firefox';
