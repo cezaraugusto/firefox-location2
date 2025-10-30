@@ -11,13 +11,13 @@
 
 <img alt="Firefox" align="right" src="https://cdn.jsdelivr.net/gh/extension-js/media@db5deb23fbfa85530f8146718812972998e13a4d/browser_logos/svg/firefox.svg" width="10.5%" />
 
-* Finds Firefox in the following channel order: `stable` / `esr` / `developer edition` / `nightly`.
+* By default checks only `stable`. Optionally can cascade to `esr` / `developer edition` / `nightly`.
 * Supports macOS / Windows / Linux
 * Works both as an ES module or CommonJS
 
 ## Support table
 
-This table lists the default locations where Firefox is typically installed for each supported platform and channel. The package checks these paths (in order) and returns the first one found. 
+This table lists the default locations where Firefox is typically installed for each supported platform and channel. By default, only the Stable channel is checked. When fallback is enabled, the package checks these paths (in order) and returns the first one found.
 
 <table>
   <thead>
@@ -153,26 +153,34 @@ This table lists the default locations where Firefox is typically installed for 
   </tbody>
 </table>
 
-Returns the first existing path found, or <code>null</code> if none are found.
+Returns the first existing path found (given selected channels), or <code>null</code> if none are found.
 
 Note: On Linux, the module first tries to resolve binaries on <code>$PATH</code> (using <code>which</code>) for the common channels listed above, then falls back to checking common filesystem locations like <code>/usr/bin/firefox</code>, <code>/usr/local/bin/firefox</code>, <code>/snap/bin/firefox</code>, and <code>/opt/firefox/firefox</code>.
 
 ## Usage
 
-**Via Node.js:**
+**Via Node.js (strict by default):**
 
 ```js
 import firefoxLocation from "firefox-location2";
 
+// Strict (Stable only)
 console.log(firefoxLocation());
-// /Applications/Firefox.app/Contents/MacOS/firefox
+// => "/Applications/Firefox.app/Contents/MacOS/firefox" or null
+
+// Enable fallback (Stable / ESR / Developer Edition / Nightly)
+console.log(firefoxLocation(true));
+// => first found among Stable/ESR/Developer/Nightly or null
 ```
 
 **Via CLI:**
 
 ```bash
 npx firefox-location2
-# /Applications/Firefox.app/Contents/MacOS/firefox
+# Strict (Stable only)
+
+npx firefox-location2 --fallback
+# Enable cascade (Stable / ESR / Developer / Nightly)
 ```
 
 ## Planned enhancements
@@ -184,12 +192,12 @@ npx firefox-location2
 
 ## Related projects
 
-* [chrome-location2](https://github.com/hughsk/chrome-location2)
-* [edge-location](https://github.com/cezaraugusto/edge-location)
-* [firefox-location](https://github.com/hughsk/firefox-location)
 * [brave-location](https://github.com/cezaraugusto/brave-location)
-* [vivaldi-location](https://github.com/jandrey/vivaldi-location)
-* [opera-location](https://github.com/jandrey/opera-location)
+* [chrome-location2](https://github.com/cezaraugusto/chrome-location2)
+* [edge-location](https://github.com/cezaraugusto/edge-location)
+* [opera-location2](https://github.com/cezaraugusto/opera-location2)
+* [vivaldi-location2](https://github.com/cezaraugusto/vivaldi-location2)
+* [yandex-location2](https://github.com/cezaraugusto/yandex-location2)
 
 ## License
 

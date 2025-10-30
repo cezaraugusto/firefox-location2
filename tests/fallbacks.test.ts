@@ -6,10 +6,19 @@ describe('firefox-location2 fallbacks', () => {
     vi.resetModules();
   });
 
-  test('Linux/other: tries esr/devedition/nightly when stable missing', async () => {
+  test('Linux/other: strict only stable; fallback tries esr/devedition/nightly', async () => {
     const locate = (await import('../src/index')).default as any;
     const calls: string[] = [];
-    const res = locate({
+    const strict = locate(false, {
+      platform: 'linux',
+      which: {
+        sync: (cmd: string) => {
+          calls.push(cmd);
+          throw new Error('nf');
+        },
+      },
+    });
+    const res = locate(true, {
       platform: 'linux',
       which: {
         sync: (cmd: string) => {
@@ -19,6 +28,7 @@ describe('firefox-location2 fallbacks', () => {
         },
       },
     });
+    expect(strict).toBeNull();
     expect(
       res === '/usr/bin/firefox-esr' || res === null || typeof res === 'string',
     ).toBe(true);
@@ -26,9 +36,9 @@ describe('firefox-location2 fallbacks', () => {
     expect(calls.includes('firefox-esr')).toBe(true);
   });
 
-  test('macOS: falls back to Developer Edition when stable missing', async () => {
+  test('macOS: strict null; fallback finds Developer Edition when stable missing', async () => {
     const locate = (await import('../src/index')).default as any;
-    const res = locate({
+    const strict = locate(false, {
       platform: 'darwin',
       fs: {
         existsSync: (p: string) => p.includes('Firefox Developer Edition.app'),
@@ -36,23 +46,43 @@ describe('firefox-location2 fallbacks', () => {
       os: { homedir: () => '/Users/test' },
       path: { join: (...x: string[]) => x.join('/') },
     });
+    const res = locate(true, {
+      platform: 'darwin',
+      fs: {
+        existsSync: (p: string) => p.includes('Firefox Developer Edition.app'),
+      },
+      os: { homedir: () => '/Users/test' },
+      path: { join: (...x: string[]) => x.join('/') },
+    });
+    expect(strict).toBeNull();
     expect(
       typeof res === 'string' && res.includes('Firefox Developer Edition.app'),
     ).toBe(true);
   });
 
-  test('Windows: falls back to ESR when stable missing', async () => {
+  test('Windows: strict null; fallback finds ESR when stable missing', async () => {
     const locate = (await import('../src/index')).default as any;
-    const res = locate({
+    const strict = locate(false, {
       platform: 'win32',
       fs: { existsSync: (p: string) => /Mozilla Firefox ESR/.test(p) },
       env: {
-        LOCALAPPDATA: 'C\\\\Local',
-        PROGRAMFILES: 'C\\\\PF',
+        LOCALAPPDATA: 'C\\Local',
+        PROGRAMFILES: 'C\\PF',
         'PROGRAMFILES(X86)': undefined,
       } as any,
       path: { join: (...x: string[]) => x.join('\\') },
     });
+    const res = locate(true, {
+      platform: 'win32',
+      fs: { existsSync: (p: string) => /Mozilla Firefox ESR/.test(p) },
+      env: {
+        LOCALAPPDATA: 'C\\Local',
+        PROGRAMFILES: 'C\\PF',
+        'PROGRAMFILES(X86)': undefined,
+      } as any,
+      path: { join: (...x: string[]) => x.join('\\') },
+    });
+    expect(strict).toBeNull();
     expect(typeof res === 'string' && /Mozilla Firefox ESR/.test(res)).toBe(
       true,
     );
@@ -60,7 +90,7 @@ describe('firefox-location2 fallbacks', () => {
 
   test('returns null when nothing found (linux)', async () => {
     const locate = (await import('../src/index')).default as any;
-    const res = locate({
+    const res = locate(false, {
       platform: 'linux',
       which: {
         sync: () => {
@@ -74,7 +104,7 @@ describe('firefox-location2 fallbacks', () => {
 
   test('returns null when nothing found (darwin)', async () => {
     const locate = (await import('../src/index')).default as any;
-    const res = locate({
+    const res = locate(false, {
       platform: 'darwin',
       fs: { existsSync: () => false },
       os: { homedir: () => '/Users/test' },
@@ -85,12 +115,12 @@ describe('firefox-location2 fallbacks', () => {
 
   test('returns null when nothing found (win32)', async () => {
     const locate = (await import('../src/index')).default as any;
-    const res = locate({
+    const res = locate(false, {
       platform: 'win32',
       fs: { existsSync: () => false },
       env: {
-        LOCALAPPDATA: 'C\\\\Local',
-        PROGRAMFILES: 'C\\\\PF',
+        LOCALAPPDATA: 'C\\Local',
+        PROGRAMFILES: 'C\\PF',
         'PROGRAMFILES(X86)': undefined,
       } as any,
       path: { join: (...x: string[]) => x.join('\\') },
