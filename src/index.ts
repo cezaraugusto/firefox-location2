@@ -14,7 +14,16 @@ export type Deps = {
   platform?: NodeJS.Platform;
 };
 
-export default function locateFirefox(deps?: Deps): string | null {
+export default function locateFirefox(
+  allowFallbackOrDeps?: boolean | Deps,
+  depsMaybe?: Deps,
+): string | null {
+  const isBoolean = typeof allowFallbackOrDeps === 'boolean';
+  const allowFallback = isBoolean ? (allowFallbackOrDeps as boolean) : false;
+  const deps: Deps | undefined = isBoolean
+    ? depsMaybe
+    : (allowFallbackOrDeps as Deps | undefined);
+
   const f: FsLike = deps?.fs ?? fs;
   const w: WhichLike = deps?.which ?? which;
   const o = deps?.os ?? os;
@@ -27,13 +36,14 @@ export default function locateFirefox(deps?: Deps): string | null {
   const other = !osx && !win;
 
   if (other) {
-    const candidates = [
-      'firefox',
+    const stable = ['firefox'];
+    const fallbacks = [
       'firefox-esr',
       'firefox-developer-edition',
       'firefox-devedition',
       'firefox-nightly',
     ];
+    const candidates = allowFallback ? [...stable, ...fallbacks] : stable;
 
     for (const cmd of candidates) {
       try {
@@ -42,42 +52,46 @@ export default function locateFirefox(deps?: Deps): string | null {
       } catch (_) {}
     }
 
-    const linuxPaths = [
-      '/usr/bin/firefox',
-      '/usr/local/bin/firefox',
-      '/usr/lib/firefox/firefox',
-      '/snap/bin/firefox',
-      '/opt/firefox/firefox',
-      '/usr/local/firefox/firefox',
-      p.join(o.homedir(), 'bin', 'firefox'),
-      p.join(o.homedir(), 'Downloads', 'firefox', 'firefox'),
-      // Flatpak exported app shims (if user/system exports are enabled)
-      p.join(
-        o.homedir(),
-        '.local',
-        'share',
-        'flatpak',
-        'exports',
-        'bin',
-        'org.mozilla.firefox',
-      ),
-      '/var/lib/flatpak/exports/bin/org.mozilla.firefox',
-    ];
+    if (allowFallback) {
+      const linuxPaths = [
+        '/usr/bin/firefox',
+        '/usr/local/bin/firefox',
+        '/usr/lib/firefox/firefox',
+        '/snap/bin/firefox',
+        '/opt/firefox/firefox',
+        '/usr/local/firefox/firefox',
+        p.join(o.homedir(), 'bin', 'firefox'),
+        p.join(o.homedir(), 'Downloads', 'firefox', 'firefox'),
+        // Flatpak exported app shims (if user/system exports are enabled)
+        p.join(
+          o.homedir(),
+          '.local',
+          'share',
+          'flatpak',
+          'exports',
+          'bin',
+          'org.mozilla.firefox',
+        ),
+        '/var/lib/flatpak/exports/bin/org.mozilla.firefox',
+      ];
 
-    for (const linuxPath of linuxPaths) {
-      if (f.existsSync(linuxPath)) {
-        return linuxPath;
+      for (const linuxPath of linuxPaths) {
+        if (f.existsSync(linuxPath)) {
+          return linuxPath;
+        }
       }
     }
 
     return null;
   } else if (osx) {
-    const apps = [
+    const appsAll = [
       { app: 'Firefox.app', exec: 'firefox' },
       { app: 'Firefox ESR.app', exec: 'firefox' },
       { app: 'Firefox Developer Edition.app', exec: 'firefox' },
       { app: 'Firefox Nightly.app', exec: 'firefox' },
     ];
+
+    const apps = allowFallback ? appsAll : [appsAll[0]];
 
     const systemBase = '/Applications';
     const userBase = p.join(o.homedir(), 'Applications');
@@ -98,12 +112,14 @@ export default function locateFirefox(deps?: Deps): string | null {
       env['PROGRAMFILES(X86)'],
     ].filter(Boolean);
 
-    const suffixes = [
+    const suffixesAll = [
       p.join('Mozilla Firefox', 'firefox.exe'),
       p.join('Mozilla Firefox ESR', 'firefox.exe'),
       p.join('Mozilla Firefox Developer Edition', 'firefox.exe'),
       p.join('Firefox Nightly', 'firefox.exe'),
     ];
+
+    const suffixes = allowFallback ? suffixesAll : [suffixesAll[0]];
 
     for (const prefix of prefixes) {
       for (const suffix of suffixes) {
@@ -112,7 +128,7 @@ export default function locateFirefox(deps?: Deps): string | null {
       }
     }
 
-    const defaultPaths = [
+    const defaultPathsAll = [
       'C:\\Program Files\\Mozilla Firefox\\firefox.exe',
       'C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe',
       'C:\\Program Files\\Mozilla Firefox ESR\\firefox.exe',
@@ -122,6 +138,10 @@ export default function locateFirefox(deps?: Deps): string | null {
       'C:\\Program Files\\Firefox Nightly\\firefox.exe',
       'C:\\Program Files (x86)\\Firefox Nightly\\firefox.exe',
     ];
+
+    const defaultPaths = allowFallback
+      ? defaultPathsAll
+      : defaultPathsAll.slice(0, 2);
 
     for (const defaultPath of defaultPaths) {
       if (f.existsSync(defaultPath)) {
