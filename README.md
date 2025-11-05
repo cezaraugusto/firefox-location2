@@ -11,9 +11,15 @@
 
 <img alt="Firefox" align="right" src="https://cdn.jsdelivr.net/gh/extension-js/media@db5deb23fbfa85530f8146718812972998e13a4d/browser_logos/svg/firefox.svg" width="10.5%" />
 
-* By default checks only `stable`. Optionally can cascade to `esr` / `developer edition` / `nightly`.
-* Supports macOS / Windows / Linux
-* Works both as an ES module or CommonJS
+- By default checks only `stable`. Optionally can cascade to `esr` / `developer edition` / `nightly`.
+- Supports macOS / Windows / Linux
+- Works both as an ES module or CommonJS
+
+New in this version:
+
+- Optional helper to throw with a friendly install guide when nothing is found
+- CLI output is colorized (green on success, red on error)
+- After you run `npx @puppeteer/browsers install firefox@stable` once, we auto-detect Firefox from Puppeteer's cache on all platforms (no env vars needed)
 
 ## Support table
 
@@ -162,15 +168,48 @@ Note: On Linux, the module first tries to resolve binaries on <code>$PATH</code>
 **Via Node.js (strict by default):**
 
 ```js
-import firefoxLocation from "firefox-location2";
+import firefoxLocation from 'firefox-location2'
 
 // Strict (Stable only)
-console.log(firefoxLocation());
+console.log(firefoxLocation())
 // => "/Applications/Firefox.app/Contents/MacOS/firefox" or null
 
 // Enable fallback (Stable / ESR / Developer Edition / Nightly)
-console.log(firefoxLocation(true));
+console.log(firefoxLocation(true))
 // => first found among Stable/ESR/Developer/Nightly or null
+
+// Throw with a friendly, copy-pasteable guide when not found
+import {locateFirefoxOrExplain, getInstallGuidance} from 'firefox-location2'
+try {
+  const path = locateFirefoxOrExplain({allowFallback: true})
+  console.log(path)
+} catch (e) {
+  console.error(String(e))
+  // Or print getInstallGuidance() explicitly
+}
+```
+
+**CommonJS:**
+
+```js
+const api = require('firefox-location2')
+const locateFirefox = api.default || api
+
+// Strict (Stable only)
+console.log(locateFirefox())
+
+// With fallback enabled
+console.log(locateFirefox(true))
+
+// Helper that throws with guidance
+try {
+  const p = (
+    api.locateFirefoxOrExplain || ((o) => locateFirefox(o?.allowFallback))
+  )({allowFallback: true})
+  console.log(p)
+} catch (e) {
+  console.error(String(e))
+}
 ```
 
 **Via CLI:**
@@ -181,7 +220,23 @@ npx firefox-location2
 
 npx firefox-location2 --fallback
 # Enable cascade (Stable / ESR / Developer / Nightly)
+
+# Output is colorized when printed to a TTY
+
+# Respect Puppeteer cache (after you install once):
+npx @puppeteer/browsers install firefox@stable
+npx firefox-location2
 ```
+
+Exit behavior:
+
+- Prints the resolved path on success
+- Exits with code 1 and prints a guidance message if nothing suitable is found
+
+Notes:
+
+- Output is colorized when printed to a TTY (green success, red error)
+- After you run `npx @puppeteer/browsers install firefox@stable` once, we auto-detect Firefox from Puppeteer's cache on all platforms. No env vars needed.
 
 ## Planned enhancements
 
@@ -192,12 +247,12 @@ npx firefox-location2 --fallback
 
 ## Related projects
 
-* [brave-location](https://github.com/cezaraugusto/brave-location)
-* [chrome-location2](https://github.com/cezaraugusto/chrome-location2)
-* [edge-location](https://github.com/cezaraugusto/edge-location)
-* [opera-location2](https://github.com/cezaraugusto/opera-location2)
-* [vivaldi-location2](https://github.com/cezaraugusto/vivaldi-location2)
-* [yandex-location2](https://github.com/cezaraugusto/yandex-location2)
+- [brave-location](https://github.com/cezaraugusto/brave-location)
+- [chrome-location2](https://github.com/cezaraugusto/chrome-location2)
+- [edge-location](https://github.com/cezaraugusto/edge-location)
+- [opera-location2](https://github.com/cezaraugusto/opera-location2)
+- [vivaldi-location2](https://github.com/cezaraugusto/vivaldi-location2)
+- [yandex-location2](https://github.com/cezaraugusto/yandex-location2)
 
 ## License
 
