@@ -1,27 +1,27 @@
 #!/usr/bin/env node
 
+import pintor from 'pintor';
 import locateFirefox, {
   locateFirefoxOrExplain,
-  getInstallGuidance
-} from './dist/index.js'
-import pintor from 'pintor'
+  getInstallGuidance,
+} from './dist/index.js';
 
-const argv = process.argv.slice(2)
-const allowFallback = argv.includes('--fallback') || argv.includes('-f')
+const argv = process.argv.slice(2);
+const allowFallback = argv.includes('--fallback') || argv.includes('-f');
 
 try {
   const result =
     typeof locateFirefoxOrExplain === 'function'
-      ? locateFirefoxOrExplain({allowFallback})
-      : locateFirefox(allowFallback)
+      ? locateFirefoxOrExplain({ allowFallback })
+      : locateFirefox(allowFallback);
 
   if (!result)
     throw new Error(
       (typeof getInstallGuidance === 'function' && getInstallGuidance()) ||
-        'No suitable Firefox binary found.'
-    )
-  console.log(pintor.green(String(result)))
+        'No suitable Firefox binary found.',
+    );
+  console.log(pintor.green(String(result)));
 } catch (e) {
-  console.error(pintor.red(String(e)))
-  process.exit(1)
+  console.error(pintor.red(String(e)));
+  process.exit(1);
 }
