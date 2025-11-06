@@ -228,6 +228,12 @@ npx @puppeteer/browsers install firefox@stable
 npx firefox-location2
 ```
 
+### Environment overrides
+
+If this environment variable is set and points to an existing binary, it takes precedence:
+
+- `FIREFOX_BINARY`
+
 Exit behavior:
 
 - Prints the resolved path on success

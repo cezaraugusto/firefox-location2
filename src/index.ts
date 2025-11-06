@@ -1,56 +1,63 @@
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
-import which from 'which'
-import {execFileSync} from 'child_process'
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import which from 'which';
+import { execFileSync } from 'child_process';
+import { resolveFromPuppeteerCache } from './resolve-puppeteer-cache';
 
-export type FsLike = {existsSync: (p: string) => boolean}
-export type WhichLike = {sync: (cmd: string) => string}
+export type FsLike = { existsSync: (p: string) => boolean };
+export type WhichLike = { sync: (cmd: string) => string };
 export type Deps = {
-  fs?: FsLike
-  which?: WhichLike
-  os?: {homedir: () => string}
-  path?: {join: (...parts: string[]) => string}
-  env?: NodeJS.ProcessEnv
-  platform?: NodeJS.Platform
-}
+  fs?: FsLike;
+  which?: WhichLike;
+  os?: { homedir: () => string };
+  path?: { join: (...parts: string[]) => string };
+  env?: NodeJS.ProcessEnv;
+  platform?: NodeJS.Platform;
+};
 
 export default function locateFirefox(
   allowFallbackOrDeps?: boolean | Deps,
-  depsMaybe?: Deps
+  depsMaybe?: Deps,
 ): string | null {
-  const isBoolean = typeof allowFallbackOrDeps === 'boolean'
-  const allowFallback = isBoolean ? (allowFallbackOrDeps as boolean) : false
+  const isBoolean = typeof allowFallbackOrDeps === 'boolean';
+  const allowFallback = isBoolean ? (allowFallbackOrDeps as boolean) : false;
   const deps: Deps | undefined = isBoolean
     ? depsMaybe
-    : (allowFallbackOrDeps as Deps | undefined)
+    : (allowFallbackOrDeps as Deps | undefined);
 
-  const f: FsLike = deps?.fs ?? fs
-  const w: WhichLike = deps?.which ?? which
-  const o = deps?.os ?? os
-  const p = deps?.path ?? path
-  const env = deps?.env ?? process.env
-  const platform = deps?.platform ?? process.platform
+  const f: FsLike = deps?.fs ?? fs;
+  const w: WhichLike = deps?.which ?? which;
+  const o = deps?.os ?? os;
+  const p = deps?.path ?? path;
+  const env = deps?.env ?? process.env;
+  const platform = deps?.platform ?? process.platform;
 
-  const osx = platform === 'darwin'
-  const win = platform === 'win32'
-  const other = !osx && !win
+  // Environment override
+  const override = env.FIREFOX_BINARY;
+  if (override && f.existsSync(override)) return override;
+
+  const osx = platform === 'darwin';
+  const win = platform === 'win32';
+  const other = !osx && !win;
 
   if (other) {
-    const stable = ['firefox']
+    const stable = ['firefox'];
     const fallbacks = [
       'firefox-esr',
       'firefox-developer-edition',
       'firefox-devedition',
-      'firefox-nightly'
-    ]
-    const candidates = allowFallback ? [...stable, ...fallbacks] : stable
+      'firefox-nightly',
+    ];
+    const candidates = allowFallback ? [...stable, ...fallbacks] : stable;
 
     for (const cmd of candidates) {
       try {
-        const resolved = w.sync(cmd)
-        if (resolved) return resolved
-      } catch (_) {}
+        const resolved = w.sync(cmd);
+        if (resolved) return resolved;
+      } catch (_) {
+        // Ignore errors
+      }
     }
 
     if (allowFallback) {
@@ -71,71 +78,101 @@ export default function locateFirefox(
           'flatpak',
           'exports',
           'bin',
-          'org.mozilla.firefox'
+          'org.mozilla.firefox',
         ),
-        '/var/lib/flatpak/exports/bin/org.mozilla.firefox'
-      ]
+        '/var/lib/flatpak/exports/bin/org.mozilla.firefox',
+      ];
 
       for (const linuxPath of linuxPaths) {
         if (f.existsSync(linuxPath)) {
-          return linuxPath
+          return linuxPath;
         }
       }
     }
 
-    // As a last resort, probe Puppeteer's browsers cache via CLI (only when fallback is allowed and not under injected deps/tests)
-    if (allowFallback && !deps) {
-      const viaCLI = resolveFromPuppeteerBrowsersCLI()
-      if (viaCLI) return viaCLI
+    // Try Puppeteer cache (only when not under injected deps/tests)
+    if (!deps) {
+      const viaCache = resolveFromPuppeteerCache();
+      if (viaCache) return viaCache;
     }
-    return null
+    // As a last resort, probe Puppeteer's browsers cache via CLI
+    // (only when fallback is allowed and not under injected deps/tests)
+    // Align behavior with chrome-location2: skip CLI probe on macOS during
+    // tests to avoid timeouts
+    const isTestEnv =
+      process.env.NODE_ENV === 'test' ||
+      typeof (process as any).env?.VITEST !== 'undefined' ||
+      typeof (process as any).env?.JEST_WORKER_ID !== 'undefined';
+    const skipCliProbe = isTestEnv && process.platform === 'darwin';
+
+    if (allowFallback && !deps && !skipCliProbe) {
+      const viaCLI = resolveFromPuppeteerBrowsersCLI();
+
+      if (viaCLI) return viaCLI;
+    }
+
+    return null;
   } else if (osx) {
     const appsAll = [
-      {app: 'Firefox.app', exec: 'firefox'},
-      {app: 'Firefox ESR.app', exec: 'firefox'},
-      {app: 'Firefox Developer Edition.app', exec: 'firefox'},
-      {app: 'Firefox Nightly.app', exec: 'firefox'}
-    ]
+      { app: 'Firefox.app', exec: 'firefox' },
+      { app: 'Firefox ESR.app', exec: 'firefox' },
+      { app: 'Firefox Developer Edition.app', exec: 'firefox' },
+      { app: 'Firefox Nightly.app', exec: 'firefox' },
+    ];
 
-    const apps = allowFallback ? appsAll : [appsAll[0]]
+    const apps = allowFallback ? appsAll : [appsAll[0]];
 
-    const systemBase = '/Applications'
-    const userBase = p.join(o.homedir(), 'Applications')
+    const systemBase = '/Applications';
+    const userBase = p.join(o.homedir(), 'Applications');
 
-    for (const {app, exec} of apps) {
-      const systemPath = `${systemBase}/${app}/Contents/MacOS/${exec}`
-      if (f.existsSync(systemPath)) return systemPath
+    for (const { app, exec } of apps) {
+      const systemPath = `${systemBase}/${app}/Contents/MacOS/${exec}`;
+      if (f.existsSync(systemPath)) return systemPath;
 
-      const userPath = `${userBase}/${app}/Contents/MacOS/${exec}`
-      if (f.existsSync(userPath)) return userPath
+      const userPath = `${userBase}/${app}/Contents/MacOS/${exec}`;
+      if (f.existsSync(userPath)) return userPath;
     }
 
-    // As a last resort, probe Puppeteer's browsers cache via CLI (only when fallback is allowed and not under injected deps/tests)
-    if (allowFallback && !deps) {
-      const viaCLI = resolveFromPuppeteerBrowsersCLI()
-      if (viaCLI) return viaCLI
+    // Try Puppeteer cache (only when not under injected deps/tests)
+    if (!deps) {
+      const viaCache = resolveFromPuppeteerCache();
+      if (viaCache) return viaCache;
     }
-    return null
+
+    // As a last resort, probe Puppeteer's browsers cache via CLI
+    // (only when fallback is allowed and not under injected deps/tests)
+    const isTestEnv =
+      process.env.NODE_ENV === 'test' ||
+      typeof (process as any).env?.VITEST !== 'undefined' ||
+      typeof (process as any).env?.JEST_WORKER_ID !== 'undefined';
+
+    const skipCliProbe = isTestEnv && process.platform === 'darwin';
+
+    if (allowFallback && !deps && !skipCliProbe) {
+      const viaCLI = resolveFromPuppeteerBrowsersCLI();
+      if (viaCLI) return viaCLI;
+    }
+    return null;
   } else {
     const prefixes = [
       env.LOCALAPPDATA,
       env.PROGRAMFILES,
-      env['PROGRAMFILES(X86)']
-    ].filter(Boolean)
+      env['PROGRAMFILES(X86)'],
+    ].filter(Boolean);
 
     const suffixesAll = [
       p.join('Mozilla Firefox', 'firefox.exe'),
       p.join('Mozilla Firefox ESR', 'firefox.exe'),
       p.join('Mozilla Firefox Developer Edition', 'firefox.exe'),
-      p.join('Firefox Nightly', 'firefox.exe')
-    ]
+      p.join('Firefox Nightly', 'firefox.exe'),
+    ];
 
-    const suffixes = allowFallback ? suffixesAll : [suffixesAll[0]]
+    const suffixes = allowFallback ? suffixesAll : [suffixesAll[0]];
 
     for (const prefix of prefixes) {
       for (const suffix of suffixes) {
-        const exePath = p.join(prefix as string, suffix)
-        if (f.existsSync(exePath)) return exePath
+        const exePath = p.join(prefix as string, suffix);
+        if (f.existsSync(exePath)) return exePath;
       }
     }
 
@@ -147,25 +184,40 @@ export default function locateFirefox(
       'C:\\Program Files\\Mozilla Firefox Developer Edition\\firefox.exe',
       'C:\\Program Files (x86)\\Mozilla Firefox Developer Edition\\firefox.exe',
       'C:\\Program Files\\Firefox Nightly\\firefox.exe',
-      'C:\\Program Files (x86)\\Firefox Nightly\\firefox.exe'
-    ]
+      'C:\\Program Files (x86)\\Firefox Nightly\\firefox.exe',
+    ];
 
     const defaultPaths = allowFallback
       ? defaultPathsAll
-      : defaultPathsAll.slice(0, 2)
+      : defaultPathsAll.slice(0, 2);
 
     for (const defaultPath of defaultPaths) {
       if (f.existsSync(defaultPath)) {
-        return defaultPath
+        return defaultPath;
       }
     }
 
-    // As a last resort, probe Puppeteer's browsers cache via CLI (only when fallback is allowed and not under injected deps/tests)
-    if (allowFallback && !deps) {
-      const viaCLI = resolveFromPuppeteerBrowsersCLI()
-      if (viaCLI) return viaCLI
+    // Try Puppeteer cache (only when not under injected deps/tests)
+    if (!deps) {
+      const viaCache = resolveFromPuppeteerCache();
+      if (viaCache) return viaCache;
     }
-    return null
+
+    // As a last resort, probe Puppeteer's browsers cache via CLI
+    // (only when fallback is allowed and not under injected deps/tests)
+    const isTestEnv =
+      process.env.NODE_ENV === 'test' ||
+      typeof (process as any).env?.VITEST !== 'undefined' ||
+      typeof (process as any).env?.JEST_WORKER_ID !== 'undefined';
+
+    const skipCliProbe = isTestEnv && process.platform === 'darwin';
+
+    if (allowFallback && !deps && !skipCliProbe) {
+      const viaCLI = resolveFromPuppeteerBrowsersCLI();
+
+      if (viaCLI) return viaCLI;
+    }
+    return null;
   }
 }
 
@@ -176,96 +228,62 @@ export function getInstallGuidance(): string {
     "Here's the fastest way to get set up:",
     '',
     '1) Install Firefox via Puppeteer Browsers (recommended for CI/dev)',
-    '   npx @puppeteer/browsers install firefox@stable --cache-dir dist/extension-js/firefox-binary',
+    '   npx @puppeteer/browsers install firefox@stable',
     '',
     'Then re-run your command — we will detect it automatically.',
     '',
-    'Alternatively, install Firefox using your OS package manager and re-run.'
-  ].join('\n')
+    'Alternatively, install Firefox using your OS package manager and re-run.',
+  ].join('\n');
 }
 
 export function locateFirefoxOrExplain(
-  options?: boolean | {allowFallback?: boolean}
+  options?: boolean | { allowFallback?: boolean },
 ): string {
   const allowFallback =
-    typeof options === 'boolean' ? options : Boolean(options?.allowFallback)
-  const found = locateFirefox(allowFallback) || locateFirefox(true)
-  if (typeof found === 'string' && found) return found
-  throw new Error(getInstallGuidance())
+    typeof options === 'boolean' ? options : Boolean(options?.allowFallback);
+  const found = locateFirefox(allowFallback) || locateFirefox(true);
+
+  if (typeof found === 'string' && found) return found;
+
+  throw new Error(getInstallGuidance());
 }
 
 function resolveFromPuppeteerBrowsersCLI(): string | null {
   try {
-    const attempts: Array<{cmd: string; args: string[]}> = [
+    const attempts: Array<{ cmd: string; args: string[] }> = [
       {
         cmd: 'npx',
-        args: [
-          '-y',
-          '@puppeteer/browsers',
-          'path',
-          'firefox@stable',
-          '--cache-dir',
-          'dist/extension-js/firefox-binary'
-        ]
+        args: ['-y', '@puppeteer/browsers', 'path', 'firefox@stable'],
       },
       {
         cmd: 'pnpm',
-        args: [
-          'dlx',
-          '@puppeteer/browsers',
-          'path',
-          'firefox@stable',
-          '--cache-dir',
-          'dist/extension-js/firefox-binary'
-        ]
+        args: ['dlx', '@puppeteer/browsers', 'path', 'firefox@stable'],
       },
       {
         cmd: 'yarn',
-        args: [
-          'dlx',
-          '@puppeteer/browsers',
-          'path',
-          'firefox@stable',
-          '--cache-dir',
-          'dist/extension-js/firefox-binary'
-        ]
+        args: ['dlx', '@puppeteer/browsers', 'path', 'firefox@stable'],
       },
-      {
-        cmd: 'bunx',
-        args: [
-          '@puppeteer/browsers',
-          'path',
-          'firefox@stable',
-          '--cache-dir',
-          'dist/extension-js/firefox-binary'
-        ]
-      },
-      {
-        cmd: 'npx',
-        args: ['-y', '@puppeteer/browsers', 'path', 'firefox@stable']
-      },
-      {
-        cmd: 'pnpm',
-        args: ['dlx', '@puppeteer/browsers', 'path', 'firefox@stable']
-      },
-      {
-        cmd: 'yarn',
-        args: ['dlx', '@puppeteer/browsers', 'path', 'firefox@stable']
-      },
-      {cmd: 'bunx', args: ['@puppeteer/browsers', 'path', 'firefox@stable']}
-    ]
+      { cmd: 'bunx', args: ['@puppeteer/browsers', 'path', 'firefox@stable'] },
+    ];
 
-    for (const {cmd, args} of attempts) {
+    for (const { cmd, args } of attempts) {
       try {
         const out = execFileSync(cmd, args, {
           encoding: 'utf8',
           stdio: ['ignore', 'pipe', 'ignore'],
-          timeout: 1500
-        }).trim()
-        if (out && fs.existsSync(out)) return out
-      } catch {}
+          timeout: 2000,
+        }).trim();
+
+        if (out && fs.existsSync(out)) return out;
+      } catch {
+        // Ignore errors
+      }
     }
-    return null
-  } catch {}
-  return null
+
+    return null;
+  } catch {
+    // Ignore errors
+  }
+
+  return null;
 }
