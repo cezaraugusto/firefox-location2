@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import pintor from 'pintor';
 import locateFirefox, {
   locateFirefoxOrExplain,
   getInstallGuidance,
@@ -20,8 +19,8 @@ try {
       (typeof getInstallGuidance === 'function' && getInstallGuidance()) ||
         'No suitable Firefox binary found.',
     );
-  console.log(pintor.green(String(result)));
+  console.log(String(result));
 } catch (e) {
-  console.error(pintor.red(String(e)));
+  console.error(String(e));
   process.exit(1);
 }
