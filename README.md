@@ -169,6 +169,7 @@ Note: On Linux, the module first tries to resolve binaries on <code>$PATH</code>
 
 ```js
 import firefoxLocation from 'firefox-location2'
+import {getFirefoxVersion} from 'firefox-location2'
 
 // Strict (Stable only)
 console.log(firefoxLocation())
@@ -183,6 +184,14 @@ import {locateFirefoxOrExplain, getInstallGuidance} from 'firefox-location2'
 try {
   const path = locateFirefoxOrExplain({allowFallback: true})
   console.log(path)
+
+  // Cross-platform version (no exec by default)
+  const v = getFirefoxVersion(path)
+  console.log(v) // e.g. "130.0.1" or null
+
+  // Opt-in: allow executing the binary to fetch version on platforms without metadata (e.g. Linux)
+  const v2 = getFirefoxVersion(path, {allowExec: true})
+  console.log(v2)
 } catch (e) {
   console.error(String(e))
   // Or print getInstallGuidance() explicitly
@@ -243,6 +252,22 @@ Notes:
 
 - Output is colorized when printed to a TTY (green success, red error)
 - After you run `npx @puppeteer/browsers install firefox@stable` once, we auto-detect Firefox from Puppeteer's cache on all platforms. No env vars needed.
+
+## API
+
+- `default export locateFirefox(allowFallback?: boolean): string | null`
+  - Returns the first existing path among the selected channels or `null`.
+  - When `allowFallback` is `true`, checks Stable → ESR → Developer → Nightly.
+
+- `locateFirefoxOrExplain(options?: boolean | { allowFallback?: boolean }): string`
+  - Returns a path if found, otherwise throws an `Error` with a friendly installation guide.
+  - Path resolution never executes the browser.
+
+- `getFirefoxVersion(bin: string, opts?: { allowExec?: boolean }): string | null`
+  - Cross-platform version resolver that does not execute the browser by default.
+  - Windows: reads PE file metadata via PowerShell (no GUI spawn).
+  - macOS: reads `Info.plist` (no GUI spawn).
+  - Linux/other: returns `null` unless `allowExec` is `true`, then tries `--version`.
 
 ## Planned enhancements
 
