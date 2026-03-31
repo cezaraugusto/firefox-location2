@@ -90,9 +90,20 @@ export default function locateFirefox(
       }
     }
 
-    // Try Puppeteer cache (only when not under injected deps/tests)
-    if (!deps) {
-      const viaCache = resolveFromPuppeteerCache();
+    // Try Puppeteer cache.
+    // Allow env injection when PUPPETEER_CACHE_DIR is explicitly provided.
+    if (!deps || String(env.PUPPETEER_CACHE_DIR || '').trim()) {
+      const cacheFs =
+        deps && (deps.fs as any) && typeof (deps.fs as any).readdirSync === 'function'
+          ? (deps.fs as any)
+          : undefined;
+      const viaCache = resolveFromPuppeteerCache({
+        fs: cacheFs,
+        env,
+        platform,
+        homeDir: o.homedir(),
+        localAppData: env.LOCALAPPDATA,
+      });
       if (viaCache) return viaCache;
     }
     // As a last resort, probe Puppeteer's browsers cache via CLI
@@ -133,9 +144,20 @@ export default function locateFirefox(
       if (f.existsSync(userPath)) return userPath;
     }
 
-    // Try Puppeteer cache (only when not under injected deps/tests)
-    if (!deps) {
-      const viaCache = resolveFromPuppeteerCache();
+    // Try Puppeteer cache.
+    // Allow env injection when PUPPETEER_CACHE_DIR is explicitly provided.
+    if (!deps || String(env.PUPPETEER_CACHE_DIR || '').trim()) {
+      const cacheFs =
+        deps && (deps.fs as any) && typeof (deps.fs as any).readdirSync === 'function'
+          ? (deps.fs as any)
+          : undefined;
+      const viaCache = resolveFromPuppeteerCache({
+        fs: cacheFs,
+        env,
+        platform,
+        homeDir: o.homedir(),
+        localAppData: env.LOCALAPPDATA,
+      });
       if (viaCache) return viaCache;
     }
 
@@ -197,9 +219,20 @@ export default function locateFirefox(
       }
     }
 
-    // Try Puppeteer cache (only when not under injected deps/tests)
-    if (!deps) {
-      const viaCache = resolveFromPuppeteerCache();
+    // Try Puppeteer cache.
+    // Allow env injection when PUPPETEER_CACHE_DIR is explicitly provided.
+    if (!deps || String(env.PUPPETEER_CACHE_DIR || '').trim()) {
+      const cacheFs =
+        deps && (deps.fs as any) && typeof (deps.fs as any).readdirSync === 'function'
+          ? (deps.fs as any)
+          : undefined;
+      const viaCache = resolveFromPuppeteerCache({
+        fs: cacheFs,
+        env,
+        platform,
+        homeDir: o.homedir(),
+        localAppData: env.LOCALAPPDATA,
+      });
       if (viaCache) return viaCache;
     }
 

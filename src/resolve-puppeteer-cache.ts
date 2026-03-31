@@ -16,74 +16,95 @@ export function resolveFromPuppeteerCache(deps?: {
   const platform: NodeJS.Platform = deps?.platform ?? process.platform;
 
   try {
+    const override = String(env.PUPPETEER_CACHE_DIR || '').trim();
+    const overrideBase = override ? path.resolve(override) : '';
+
     if (platform === 'darwin') {
       const home = deps?.homeDir ?? env.HOME ?? '';
+      const bases: string[] = [];
+      if (overrideBase) bases.push(overrideBase);
+      if (home) bases.push(path.join(home, 'Library', 'Caches', 'puppeteer', 'firefox'));
+      if (bases.length === 0) return null;
 
-      if (!home) return null;
-
-      const base = path.join(home, 'Library', 'Caches', 'puppeteer', 'firefox');
-      const dirs = listDirs(f, base).filter(
-        (d) => d.startsWith('mac-') || d.startsWith('mac_arm-'),
-      );
-      const candidates: string[] = [];
-      for (const d of dirs) {
-        candidates.push(
-          path.join(base, d, 'Firefox.app', 'Contents', 'MacOS', 'firefox'),
+      for (const base of bases) {
+        const dirs = listDirs(f, base).filter(
+          (d) => d.startsWith('mac-') || d.startsWith('mac_arm-'),
         );
+        const candidates: string[] = [];
+        for (const d of dirs) {
+          candidates.push(
+            path.join(base, d, 'Firefox.app', 'Contents', 'MacOS', 'firefox'),
+          );
 
-        candidates.push(
-          path.join(
-            base,
-            d,
-            'Firefox Nightly.app',
-            'Contents',
-            'MacOS',
-            'firefox',
-          ),
-        );
+          candidates.push(
+            path.join(
+              base,
+              d,
+              'Firefox Nightly.app',
+              'Contents',
+              'MacOS',
+              'firefox',
+            ),
+          );
+        }
+
+        const found = firstExisting(f, candidates);
+        if (found) return found;
       }
 
-      return firstExisting(f, candidates);
+      return null;
     }
 
     if (platform === 'win32') {
       const lad = deps?.localAppData ?? env.LOCALAPPDATA;
+      const bases: string[] = [];
+      if (overrideBase) bases.push(overrideBase);
+      if (lad) bases.push(path.join(lad, 'puppeteer', 'firefox'));
+      if (bases.length === 0) return null;
 
-      if (!lad) return null;
+      for (const base of bases) {
+        const dirs = listDirs(f, base);
+        const preferred = [
+          ...dirs.filter((d) => d.startsWith('win64-')),
+          ...dirs.filter((d) => d.startsWith('win32-')),
+        ];
+        const candidates: string[] = [];
 
-      const base = path.join(lad, 'puppeteer', 'firefox');
-      const dirs = listDirs(f, base);
-      const preferred = [
-        ...dirs.filter((d) => d.startsWith('win64-')),
-        ...dirs.filter((d) => d.startsWith('win32-')),
-      ];
-      const candidates: string[] = [];
+        for (const d of preferred) {
+          candidates.push(path.join(base, d, 'firefox.exe'));
+          candidates.push(path.join(base, d, 'firefox', 'firefox.exe'));
+        }
 
-      for (const d of preferred) {
-        candidates.push(path.join(base, d, 'firefox.exe'));
-        candidates.push(path.join(base, d, 'firefox', 'firefox.exe'));
+        const found = firstExisting(f, candidates);
+        if (found) return found;
       }
 
-      return firstExisting(f, candidates);
+      return null;
     }
 
     // linux and others
     const xdg = env.XDG_CACHE_HOME;
     const home = deps?.homeDir ?? env.HOME ?? '';
     const cacheBase = xdg || (home ? path.join(home, '.cache') : undefined);
+    const bases: string[] = [];
+    if (overrideBase) bases.push(overrideBase);
+    if (cacheBase) bases.push(path.join(cacheBase, 'puppeteer', 'firefox'));
+    if (bases.length === 0) return null;
 
-    if (!cacheBase) return null;
+    for (const base of bases) {
+      const dirs = listDirs(f, base).filter((d) => d.startsWith('linux-'));
+      const candidates: string[] = [];
 
-    const base = path.join(cacheBase, 'puppeteer', 'firefox');
-    const dirs = listDirs(f, base).filter((d) => d.startsWith('linux-'));
-    const candidates: string[] = [];
+      for (const d of dirs) {
+        candidates.push(path.join(base, d, 'firefox'));
+        candidates.push(path.join(base, d, 'firefox', 'firefox'));
+      }
 
-    for (const d of dirs) {
-      candidates.push(path.join(base, d, 'firefox'));
-      candidates.push(path.join(base, d, 'firefox', 'firefox'));
+      const found = firstExisting(f, candidates);
+      if (found) return found;
     }
 
-    return firstExisting(f, candidates);
+    return null;
   } catch {
     return null;
   }
