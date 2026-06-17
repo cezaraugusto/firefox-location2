@@ -1,4 +1,4 @@
-[npm-version-image]: https://img.shields.io/npm/v/firefox-location2.svg?color=FF7139
+[npm-version-image]: https://img.shields.io/npm/v/firefox-location2.svg?color=0971fe
 [npm-version-url]: https://www.npmjs.com/package/firefox-location2
 [npm-downloads-image]: https://img.shields.io/npm/dm/firefox-location2.svg?color=2ecc40
 [npm-downloads-url]: https://www.npmjs.com/package/firefox-location2
