@@ -19,7 +19,7 @@ const makeFs = (entries: Record<string, 'file' | 'dir'>) => {
 }
 
 describe('resolveFromPuppeteerCache', () => {
-  test('honors PUPPETEER_CACHE_DIR override (macOS)', () => {
+  it('honors PUPPETEER_CACHE_DIR override (macOS)', () => {
     const base = '/tmp/managed/firefox/firefox'
     const platformDir = `${base}/mac_arm-123`
     const bin = `${platformDir}/Firefox.app/Contents/MacOS/firefox`
