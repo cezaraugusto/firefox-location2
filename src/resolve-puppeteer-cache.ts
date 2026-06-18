@@ -18,7 +18,7 @@ export function resolveFromPuppeteerCache (deps?: {
 
   try {
     const override = String(env.PUPPETEER_CACHE_DIR || '').trim()
-    const overrideBase = override ? path.resolve(override) : ''
+    const overrideBase = override ? p.resolve(override) : ''
 
     if (platform === 'darwin') {
       const home = deps?.homeDir ?? env.HOME ?? ''
