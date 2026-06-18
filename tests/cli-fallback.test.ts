@@ -8,7 +8,7 @@ import {describe, expect, test} from 'vitest'
 const BIN = path.join(__dirname, '..', 'bin.js')
 
 describe('firefox-location2 CLI', () => {
-  test('prints guidance and exit code 1 when not found', () => {
+  it('prints guidance and exit code 1 when not found', () => {
     let code = 0
     let out = ''
 
@@ -40,7 +40,7 @@ describe('firefox-location2 CLI', () => {
     }
   })
 
-  test('prints env override path when FIREFOX_BINARY is set and exists', () => {
+  it('prints env override path when FIREFOX_BINARY is set and exists', () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ff-bin-'))
     const fake = path.join(
       tmp,

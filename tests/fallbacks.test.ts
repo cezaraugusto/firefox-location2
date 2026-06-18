@@ -8,7 +8,7 @@ describe('firefox-location2 fallbacks', () => {
     vi.resetModules()
   })
 
-  test('Linux/other: strict only stable; fallback tries esr/devedition/nightly', async () => {
+  it('Linux/other: strict only stable; fallback tries esr/devedition/nightly', async () => {
     const locate = (await import('../src/index')).default as any
     const calls: string[] = []
     const strict = locate(false, {
@@ -42,7 +42,7 @@ describe('firefox-location2 fallbacks', () => {
     expect(calls.includes('firefox-esr')).toBe(true)
   })
 
-  test('macOS: strict null; fallback finds Developer Edition when stable missing', async () => {
+  it('macOS: strict null; fallback finds Developer Edition when stable missing', async () => {
     const locate = (await import('../src/index')).default as any
     const strict = locate(false, {
       platform: 'darwin',
@@ -68,7 +68,7 @@ describe('firefox-location2 fallbacks', () => {
     ).toBe(true)
   })
 
-  test('Windows: strict null; fallback finds ESR when stable missing', async () => {
+  it('Windows: strict null; fallback finds ESR when stable missing', async () => {
     const locate = (await import('../src/index')).default as any
     const strict = locate(false, {
       platform: 'win32',
@@ -98,7 +98,7 @@ describe('firefox-location2 fallbacks', () => {
     )
   })
 
-  test('returns null when nothing found (linux)', async () => {
+  it('returns null when nothing found (linux)', async () => {
     const locate = (await import('../src/index')).default as any
     const res = locate(false, {
       platform: 'linux',
@@ -113,7 +113,7 @@ describe('firefox-location2 fallbacks', () => {
     expect(res).toBeNull()
   })
 
-  test('returns null when nothing found (darwin)', async () => {
+  it('returns null when nothing found (darwin)', async () => {
     const locate = (await import('../src/index')).default as any
     const res = locate(false, {
       platform: 'darwin',
@@ -125,7 +125,7 @@ describe('firefox-location2 fallbacks', () => {
     expect(res).toBeNull()
   })
 
-  test('returns null when nothing found (win32)', async () => {
+  it('returns null when nothing found (win32)', async () => {
     const locate = (await import('../src/index')).default as any
     const res = locate(false, {
       platform: 'win32',
