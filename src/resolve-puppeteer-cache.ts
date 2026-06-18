@@ -14,6 +14,7 @@ export function resolveFromPuppeteerCache (deps?: {
   const f: FsLike = deps?.fs ?? fs
   const env: EnvLike = deps?.env ?? process.env
   const platform: NodeJS.Platform = deps?.platform ?? process.platform
+  const p = platform === 'win32' ? path.win32 : path.posix
 
   try {
     const override = String(env.PUPPETEER_CACHE_DIR || '').trim()
@@ -25,7 +26,7 @@ export function resolveFromPuppeteerCache (deps?: {
 
       if (overrideBase) bases.push(overrideBase)
 
-      if (home) bases.push(path.join(home, 'Library', 'Caches', 'puppeteer', 'firefox'))
+      if (home) bases.push(p.join(home, 'Library', 'Caches', 'puppeteer', 'firefox'))
 
       if (bases.length === 0) return null
 
@@ -38,11 +39,11 @@ export function resolveFromPuppeteerCache (deps?: {
 
         for (const d of dirs) {
           candidates.push(
-            path.join(base, d, 'Firefox.app', 'Contents', 'MacOS', 'firefox')
+            p.join(base, d, 'Firefox.app', 'Contents', 'MacOS', 'firefox')
           )
 
           candidates.push(
-            path.join(
+            p.join(
               base,
               d,
               'Firefox Nightly.app',
@@ -67,7 +68,7 @@ export function resolveFromPuppeteerCache (deps?: {
 
       if (overrideBase) bases.push(overrideBase)
 
-      if (lad) bases.push(path.join(lad, 'puppeteer', 'firefox'))
+      if (lad) bases.push(p.join(lad, 'puppeteer', 'firefox'))
 
       if (bases.length === 0) return null
 
@@ -81,8 +82,8 @@ export function resolveFromPuppeteerCache (deps?: {
         const candidates: string[] = []
 
         for (const d of preferred) {
-          candidates.push(path.join(base, d, 'firefox.exe'))
-          candidates.push(path.join(base, d, 'firefox', 'firefox.exe'))
+          candidates.push(p.join(base, d, 'firefox.exe'))
+          candidates.push(p.join(base, d, 'firefox', 'firefox.exe'))
         }
 
         const found = firstExisting(f, candidates)
@@ -96,12 +97,12 @@ export function resolveFromPuppeteerCache (deps?: {
     // Linux and others
     const xdg = env.XDG_CACHE_HOME
     const home = deps?.homeDir ?? env.HOME ?? ''
-    const cacheBase = xdg || (home ? path.join(home, '.cache') : undefined)
+    const cacheBase = xdg || (home ? p.join(home, '.cache') : undefined)
     const bases: string[] = []
 
     if (overrideBase) bases.push(overrideBase)
 
-    if (cacheBase) bases.push(path.join(cacheBase, 'puppeteer', 'firefox'))
+    if (cacheBase) bases.push(p.join(cacheBase, 'puppeteer', 'firefox'))
 
     if (bases.length === 0) return null
 
@@ -110,8 +111,8 @@ export function resolveFromPuppeteerCache (deps?: {
       const candidates: string[] = []
 
       for (const d of dirs) {
-        candidates.push(path.join(base, d, 'firefox'))
-        candidates.push(path.join(base, d, 'firefox', 'firefox'))
+        candidates.push(p.join(base, d, 'firefox'))
+        candidates.push(p.join(base, d, 'firefox', 'firefox'))
       }
 
       const found = firstExisting(f, candidates)
