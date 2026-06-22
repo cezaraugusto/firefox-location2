@@ -37,7 +37,7 @@ console.log(firefoxLocation())
 console.log(firefoxLocation(true))
 // => first found among Stable/ESR/Developer/Nightly or null
 
-// Throw with a friendly, copy-pasteable guide when not found
+// Throw with an install guide when not found
 import {locateFirefoxOrExplain, getInstallGuidance} from 'firefox-location2'
 try {
   const path = locateFirefoxOrExplain({allowFallback: true})

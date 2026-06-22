@@ -277,12 +277,12 @@ export function getInstallGuidance (): string {
   return [
     "We couldn't find a Firefox browser on this machine.",
     '',
-    "Here's the fastest way to get set up:",
+    'To install one:',
     '',
     '1) Install Firefox via Puppeteer Browsers (recommended for CI/dev)',
     '   npx @puppeteer/browsers install firefox@stable',
     '',
-    'Then re-run your command, and we will detect it automatically.',
+    'Re-run your command afterward and it will be detected automatically.',
     '',
     'Alternatively, install Firefox using your OS package manager and re-run.'
   ].join('\n')
