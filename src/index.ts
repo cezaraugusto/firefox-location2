@@ -282,7 +282,7 @@ export function getInstallGuidance (): string {
     '1) Install Firefox via Puppeteer Browsers (recommended for CI/dev)',
     '   npx @puppeteer/browsers install firefox@stable',
     '',
-    'Then re-run your command , we will detect it automatically.',
+    'Then re-run your command, and we will detect it automatically.',
     '',
     'Alternatively, install Firefox using your OS package manager and re-run.'
   ].join('\n')
