@@ -15,15 +15,92 @@
 - Supports macOS / Windows / Linux
 - Works both as an ES module or CommonJS
 
-New in this version:
+## Installation
 
-- Optional helper to throw with a friendly install guide when nothing is found
-- CLI output is colorized (green on success, red on error)
-- After you run `npx @puppeteer/browsers install firefox@stable` once, we auto-detect Firefox from Puppeteer's cache on all platforms (no env vars needed)
+```bash
+npm i firefox-location2
+```
+
+## Usage
+
+**Via Node.js (strict by default):**
+
+```js
+import firefoxLocation from 'firefox-location2'
+import {getFirefoxVersion} from 'firefox-location2'
+
+// Strict (Stable only)
+console.log(firefoxLocation())
+// => "/Applications/Firefox.app/Contents/MacOS/firefox" or null
+
+// Enable fallback (Stable / ESR / Developer Edition / Nightly)
+console.log(firefoxLocation(true))
+// => first found among Stable/ESR/Developer/Nightly or null
+
+// Throw with a friendly, copy-pasteable guide when not found
+import {locateFirefoxOrExplain, getInstallGuidance} from 'firefox-location2'
+try {
+  const path = locateFirefoxOrExplain({allowFallback: true})
+  console.log(path)
+
+  // Cross-platform version (no exec by default)
+  const v = getFirefoxVersion(path)
+  console.log(v) // e.g. "130.0.1" or null
+
+  // Opt-in: allow executing the binary to fetch version on platforms without metadata (e.g. Linux)
+  const v2 = getFirefoxVersion(path, {allowExec: true})
+  console.log(v2)
+} catch (e) {
+  console.error(String(e))
+  // Or print getInstallGuidance() explicitly
+}
+```
+
+**CommonJS:**
+
+```js
+const api = require('firefox-location2')
+const locateFirefox = api.default || api
+```
+
+**Via CLI:**
+
+```bash
+npx firefox-location2
+# Strict (Stable only)
+
+npx firefox-location2 --fallback
+# Enable cascade (Stable / ESR / Developer / Nightly)
+
+# Output is colorized when printed to a TTY
+
+# Respect Puppeteer cache (after you install once):
+npx @puppeteer/browsers install firefox@stable
+npx firefox-location2
+```
+
+### Environment overrides
+
+If this environment variable is set and points to an existing binary, it takes precedence:
+
+- `FIREFOX_BINARY`
+
+Exit behavior:
+
+- Prints the resolved path on success
+- Exits with code 1 and prints a guidance message if nothing suitable is found
+
+Notes:
+
+- Output is colorized when printed to a TTY (green success, red error)
+- After you run `npx @puppeteer/browsers install firefox@stable` once, we auto-detect Firefox from Puppeteer's cache on all platforms. No env vars needed.
 
 ## Support table
 
-This table lists the default locations where Firefox is typically installed for each supported platform and channel. By default, only the Stable channel is checked. When fallback is enabled, the package checks these paths (in order) and returns the first one found.
+By default, only the Stable channel is checked. When fallback is enabled, ESR, Developer Edition, and Nightly are also checked (in that order) and the first existing path is returned.
+
+<details>
+<summary>Default locations checked per platform and channel</summary>
 
 <table>
   <thead>
@@ -159,99 +236,11 @@ This table lists the default locations where Firefox is typically installed for 
   </tbody>
 </table>
 
+</details>
+
 Returns the first existing path found (given selected channels), or <code>null</code> if none are found.
 
 Note: On Linux, the module first tries to resolve binaries on <code>$PATH</code> (using <code>which</code>) for the common channels listed above, then falls back to checking common filesystem locations like <code>/usr/bin/firefox</code>, <code>/usr/local/bin/firefox</code>, <code>/snap/bin/firefox</code>, and <code>/opt/firefox/firefox</code>.
-
-## Usage
-
-**Via Node.js (strict by default):**
-
-```js
-import firefoxLocation from 'firefox-location2'
-import {getFirefoxVersion} from 'firefox-location2'
-
-// Strict (Stable only)
-console.log(firefoxLocation())
-// => "/Applications/Firefox.app/Contents/MacOS/firefox" or null
-
-// Enable fallback (Stable / ESR / Developer Edition / Nightly)
-console.log(firefoxLocation(true))
-// => first found among Stable/ESR/Developer/Nightly or null
-
-// Throw with a friendly, copy-pasteable guide when not found
-import {locateFirefoxOrExplain, getInstallGuidance} from 'firefox-location2'
-try {
-  const path = locateFirefoxOrExplain({allowFallback: true})
-  console.log(path)
-
-  // Cross-platform version (no exec by default)
-  const v = getFirefoxVersion(path)
-  console.log(v) // e.g. "130.0.1" or null
-
-  // Opt-in: allow executing the binary to fetch version on platforms without metadata (e.g. Linux)
-  const v2 = getFirefoxVersion(path, {allowExec: true})
-  console.log(v2)
-} catch (e) {
-  console.error(String(e))
-  // Or print getInstallGuidance() explicitly
-}
-```
-
-**CommonJS:**
-
-```js
-const api = require('firefox-location2')
-const locateFirefox = api.default || api
-
-// Strict (Stable only)
-console.log(locateFirefox())
-
-// With fallback enabled
-console.log(locateFirefox(true))
-
-// Helper that throws with guidance
-try {
-  const p = (
-    api.locateFirefoxOrExplain || ((o) => locateFirefox(o?.allowFallback))
-  )({allowFallback: true})
-  console.log(p)
-} catch (e) {
-  console.error(String(e))
-}
-```
-
-**Via CLI:**
-
-```bash
-npx firefox-location2
-# Strict (Stable only)
-
-npx firefox-location2 --fallback
-# Enable cascade (Stable / ESR / Developer / Nightly)
-
-# Output is colorized when printed to a TTY
-
-# Respect Puppeteer cache (after you install once):
-npx @puppeteer/browsers install firefox@stable
-npx firefox-location2
-```
-
-### Environment overrides
-
-If this environment variable is set and points to an existing binary, it takes precedence:
-
-- `FIREFOX_BINARY`
-
-Exit behavior:
-
-- Prints the resolved path on success
-- Exits with code 1 and prints a guidance message if nothing suitable is found
-
-Notes:
-
-- Output is colorized when printed to a TTY (green success, red error)
-- After you run `npx @puppeteer/browsers install firefox@stable` once, we auto-detect Firefox from Puppeteer's cache on all platforms. No env vars needed.
 
 ## API
 
@@ -269,20 +258,17 @@ Notes:
   - macOS: reads `Info.plist` (no GUI spawn).
   - Linux/other: returns `null` unless `allowExec` is `true`, then tries `--version`.
 
-## Planned enhancements
-
-- Flatpak detection on Linux: detect installed Flatpak app <code>org.mozilla.firefox</code> and expose the appropriate invocation.
-- Custom build locations: probe common custom paths such as <code>~/bin/firefox</code>, <code>~/Downloads/firefox/firefox</code>, <code>/usr/local/firefox/firefox</code>, <code>/opt/firefox-dev/firefox</code>.
-- Optional binary validation: helper to return <code>firefox --version</code> (or Flatpak equivalent) for diagnostics.
-- Optional launch helpers: generate safe args (e.g., <code>--no-remote</code>, <code>--new-instance</code>, <code>-profile</code>, optional <code>-start-debugger-server</code>), with Flatpak-specific sandbox flags when applicable.
-
 ## Related projects
 
 - [brave-location](https://github.com/cezaraugusto/brave-location)
 - [chrome-location2](https://github.com/cezaraugusto/chrome-location2)
+- [chromium-location](https://github.com/cezaraugusto/chromium-location)
 - [edge-location](https://github.com/cezaraugusto/edge-location)
+- [safari-location2](https://github.com/cezaraugusto/safari-location2)
 - [opera-location2](https://github.com/cezaraugusto/opera-location2)
 - [vivaldi-location2](https://github.com/cezaraugusto/vivaldi-location2)
+- [waterfox-location](https://github.com/cezaraugusto/waterfox-location)
+- [librewolf-location](https://github.com/cezaraugusto/librewolf-location)
 - [yandex-location](https://github.com/cezaraugusto/yandex-location)
 
 ## License
