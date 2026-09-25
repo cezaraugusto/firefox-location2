@@ -259,6 +259,7 @@ Note: On Linux, the module first tries to resolve binaries on <code>$PATH</code>
   - Windows: reads PE file metadata via PowerShell (no GUI spawn).
   - macOS: reads `Info.plist` (no GUI spawn).
   - Linux/other: returns `null` unless `allowExec` is `true`, then tries `--version`.
+  - Keeps a pre-release marker: a Nightly answers `158.0a1`, a beta `141.0b3`, an ESR `128.5.0esr`, a release `158.0`.
 
 ## Related projects
 

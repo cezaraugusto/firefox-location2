@@ -398,10 +398,12 @@ export function getFirefoxVersion (
   return null
 }
 
+// Keep a pre-release marker (158.0a1, 141.0b3, 128.5.0esr) so a Nightly or a
+// beta is not reported as the release it precedes.
 function normalizeVersion (s: string | null | undefined): string | null {
   if (!s) return null
 
-  const m = String(s).match(/(\d+(?:\.\d+){1,3})/)
+  const m = String(s).match(/(\d+(?:\.\d+){1,3}(?:[a-z]+\d*)?)/i)
 
   return m ? m[1] : null
 }
